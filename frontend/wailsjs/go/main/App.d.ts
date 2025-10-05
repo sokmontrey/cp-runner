@@ -26,6 +26,8 @@ export function OnFileSelected(arg1:model.File):Promise<void>;
 
 export function OnTestcaseChanged(arg1:model.File,arg2:model.Testcase):Promise<void>;
 
+export function OnTestcaseDeleted(arg1:model.File,arg2:string):Promise<void>;
+
 export function ProcessSolution(arg1:model.File):Promise<void>;
 
 export function RunCode(arg1:string,arg2:string,arg3:string,arg4:string,arg5:model.Language):Promise<boolean>;

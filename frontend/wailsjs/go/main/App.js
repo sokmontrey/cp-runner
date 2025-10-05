@@ -50,6 +50,10 @@ export function OnTestcaseChanged(arg1, arg2) {
   return window['go']['main']['App']['OnTestcaseChanged'](arg1, arg2);
 }
 
+export function OnTestcaseDeleted(arg1, arg2) {
+  return window['go']['main']['App']['OnTestcaseDeleted'](arg1, arg2);
+}
+
 export function ProcessSolution(arg1) {
   return window['go']['main']['App']['ProcessSolution'](arg1);
 }

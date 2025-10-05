@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 // App struct
@@ -70,6 +71,14 @@ func (a *App) OnTestcaseChanged(file model.File, testcase model.Testcase) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func (a *App) OnTestcaseDeleted(file model.File, id string) {
+	log.Println("Testcase deleted: ", file, id)
+	_ = os.Remove(filepath.Join(a.path, file.Name, "inputs", id+".in"))
+	_ = os.Remove(filepath.Join(a.path, file.Name, "expected-outputs", id+".out"))
+	_ = os.Remove(filepath.Join(a.path, file.Name, "actual-outputs", id+".txt"))
+	_ = os.Remove(filepath.Join(a.path, file.Name, "diffs", id+".txt"))
 }
 
 // Frontend API
@@ -176,34 +185,44 @@ func (a *App) ProcessSolution(file model.File) {
 	language := a.getLanguageByExt(file.Ext)
 	ids := a.GetAllTestcaseIds(file)
 
+	var wg sync.WaitGroup
+
 	for _, id := range ids {
-		codeFile := filepath.Join(a.path, file.FullName)
-		inputFile := filepath.Join(a.path, file.Name, "inputs", id+".in")
-		actualOutputFile := filepath.Join(a.path, file.Name, "actual-outputs", id+".txt")
-		expectedOutputFile := filepath.Join(a.path, file.Name, "expected-outputs", id+".out")
-		tempFile := filepath.Join(a.path, file.Name, "temps", id+".out")
-		diffFile := filepath.Join(a.path, file.Name, "diffs", id+".txt")
+		wg.Add(1)
 
-		isRun := a.RunCode(codeFile, inputFile, actualOutputFile, tempFile, language)
+		go func(id string) {
+			defer wg.Done()
 
-		runtime.EventsEmit(a.ctx, model.OutputChangedEventName, model.OutputChangedEvent{
-			FileName: file.Name,
-			Id:       id,
-			Value:    a.GetActualOutput(file, id),
-		})
+			codeFile := filepath.Join(a.path, file.FullName)
+			inputFile := filepath.Join(a.path, file.Name, "inputs", id+".in")
+			actualOutputFile := filepath.Join(a.path, file.Name, "actual-outputs", id+".txt")
+			expectedOutputFile := filepath.Join(a.path, file.Name, "expected-outputs", id+".out")
+			tempFile := filepath.Join(a.path, file.Name, "temps", id+".out")
+			diffFile := filepath.Join(a.path, file.Name, "diffs", id+".txt")
 
-		if isRun {
-			a.CompareOutputs(expectedOutputFile, actualOutputFile, diffFile)
-		} else {
-			_ = os.WriteFile(diffFile, []byte(""), 0644)
-		}
+			isRun := a.RunCode(codeFile, inputFile, actualOutputFile, tempFile, language)
 
-		runtime.EventsEmit(a.ctx, model.DiffChangedEventName, model.DiffChangedEvent{
-			FileName: file.Name,
-			Id:       id,
-			Value:    a.GetDiff(file, id),
-		})
+			runtime.EventsEmit(a.ctx, model.OutputChangedEventName, model.OutputChangedEvent{
+				FileName: file.Name,
+				Id:       id,
+				Value:    a.GetActualOutput(file, id),
+			})
+
+			if isRun {
+				a.CompareOutputs(expectedOutputFile, actualOutputFile, diffFile)
+			} else {
+				_ = os.WriteFile(diffFile, []byte(""), 0644)
+			}
+
+			runtime.EventsEmit(a.ctx, model.DiffChangedEventName, model.DiffChangedEvent{
+				FileName: file.Name,
+				Id:       id,
+				Value:    a.GetDiff(file, id),
+			})
+		}(id)
 	}
+
+	wg.Wait()
 }
 
 func (a *App) RunCode(

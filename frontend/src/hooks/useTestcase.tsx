@@ -1,8 +1,8 @@
-import {model} from "../../wailsjs/go/models";
-import {useCallback, useEffect, useState} from "react";
-import {GetAllTestcases, OnTestcaseChanged} from "../../wailsjs/go/main/App";
-import {EventsOff, EventsOn} from "../../wailsjs/runtime";
-import {debounceByKey} from "../lib/debounce";
+import { model } from "../../wailsjs/go/models";
+import { useCallback, useEffect, useState } from "react";
+import { GetAllTestcases, OnTestcaseChanged, OnTestcaseDeleted } from "../../wailsjs/go/main/App";
+import { EventsOff, EventsOn } from "../../wailsjs/runtime";
+import { debounceByKey } from "../lib/debounce";
 
 export const useTestcases = (selectedFile: model.File | null) => {
     const [testcases, setTestcases] = useState<model.Testcase[]>([]);
@@ -19,79 +19,74 @@ export const useTestcases = (selectedFile: model.File | null) => {
         [selectedFile]
     );
 
-    const fetchTestcases = async () => {
-        if (!selectedFile) {
-            return;
-        }
-        const fetchedTestcases = await GetAllTestcases(selectedFile);
-        setTestcases(fetchedTestcases);
-    }
+    const updateTestcase = useCallback(
+        (id: string, patch: Partial<model.Testcase>, skipSave: boolean = false) => {
+            setTestcases(prev => {
+                const old = prev.find(t => t.id === id);
+                if (!old) return prev;
+                const updated = { ...old, ...patch };
+                const newList = prev.map(t => (t.id === id ? updated : t));
+                if (!skipSave && selectedFile) saveTestcases(updated);
+                return newList;
+            });
+        },
+        [selectedFile, saveTestcases]
+    );
 
-    const updateTestcase = (id: string, patch: Partial<model.Testcase>, skipSave: boolean = false) => {
-        if (!selectedFile) {
-            return;
-        }
-        const odlTestcase = testcases.find(testcase => testcase.id === id);
-        if (!odlTestcase) {
-            return;
-        }
-        const newTestcase = {...odlTestcase, ...patch};
-        setTestcases(prev =>
-            prev.map(testcase => testcase.id === id
-                ? newTestcase
-                : testcase)
-        );
-        if (!skipSave) {
-            saveTestcases(newTestcase);
-        }
-    }
+    const fetchTestcases = useCallback(async () => {
+        if (!selectedFile) return;
+        const fetched = await GetAllTestcases(selectedFile);
+        setTestcases(fetched);
+    }, [selectedFile]);
 
-    const addTestcase = () => {
-        if (!selectedFile) {
-            return;
-        }
+    const addTestcase = useCallback(() => {
+        if (!selectedFile) return;
         const newTestcase = {
-            id: (testcases.length + 1).toString(),
+            id: Date.now().toString(),
             input: "",
             expectedOutput: "",
             actualOutput: "",
             diff: "",
         };
-        setTestcases(prev => [...prev, newTestcase,]);
+        setTestcases(prev => [...prev, newTestcase]);
         saveTestcases(newTestcase);
-    }
+    }, [selectedFile, saveTestcases]);
+
+    const removeTestcase = useCallback(
+        async (id: string) => {
+            if (!selectedFile) return;
+            await OnTestcaseDeleted(selectedFile, id);
+            setTestcases(prev => prev.filter(t => t.id !== id));
+        },
+        [selectedFile]
+    );
 
     useEffect(() => {
-        if (!selectedFile) {
-            return;
-        }
+        if (!selectedFile) return;
 
-        EventsOn("output-changed", ({fileName, id, value}: model.OutputChangedEvent) => {
-            if (fileName !== selectedFile.name) {
-                return;
-            }
-            updateTestcase(id, {actualOutput: value}, true);
-        });
+        const handleOutputChanged = ({ fileName, id, value }: model.OutputChangedEvent) => {
+            if (fileName !== selectedFile.name) return;
+            updateTestcase(id, { actualOutput: value }, true);
+        };
 
-        EventsOn("diff-changed", ({fileName, id, value}: model.DiffChangedEvent) => {
-            if (fileName !== selectedFile.name) {
-                return;
-            }
-            updateTestcase(id, {diff: value}, true);
-        });
+        const handleDiffChanged = ({ fileName, id, value }: model.DiffChangedEvent) => {
+            if (fileName !== selectedFile.name) return;
+            updateTestcase(id, { diff: value }, true);
+        };
+
+        EventsOn("output-changed", handleOutputChanged);
+        EventsOn("diff-changed", handleDiffChanged);
 
         return () => {
             EventsOff("output-changed");
             EventsOff("diff-changed");
-        }
-    }, [selectedFile, updateTestcase, testcases]);
+        };
+    }, [selectedFile, updateTestcase]);
 
     useEffect(() => {
-        if (!selectedFile) {
-            return;
-        }
+        if (!selectedFile) return;
         fetchTestcases().then();
-    }, [selectedFile]);
+    }, [selectedFile, fetchTestcases]);
 
     return {
         testcases,
@@ -99,5 +94,6 @@ export const useTestcases = (selectedFile: model.File | null) => {
         addTestcase,
         fetchTestcases,
         saveTestcases,
-    }
-}
+        removeTestcase,
+    };
+};

@@ -5,19 +5,21 @@ import {debounce} from "../lib/debounce";
 
 interface EditorProps {
     testcases: model.Testcase[];
-    updateTestcase: (id: string, testcase: Partial<model.Testcase>) => void;
-    addTestcase: () => void;
+    onUpdateTestcase: (id: string, testcase: Partial<model.Testcase>) => void;
+    onAddTestcase: () => void;
     selectedFile: model.File | null;
-    fetchTestcases: () => void;
+    onRefreshTestcases: () => void;
+    onRemoveTestcase: (id: string) => void;
 }
 
 function Editor(
     {
-        testcases,
-        updateTestcase,
-        addTestcase,
         selectedFile,
-        fetchTestcases,
+        testcases,
+        onUpdateTestcase,
+        onAddTestcase,
+        onRefreshTestcases,
+        onRemoveTestcase,
     }: EditorProps
 ) {
     return (<div>
@@ -26,11 +28,12 @@ function Editor(
             <TestcaseRow
                 key={testcase.id}
                 testcase={testcase}
-                onChange={updateTestcase}
+                onChange={onUpdateTestcase}
+                onRemove={onRemoveTestcase}
             />
         )}
-        <button onClick={addTestcase}>Add</button>
-        <button onClick={fetchTestcases}>Refresh</button>
+        <button onClick={onAddTestcase}>Add</button>
+        <button onClick={onRefreshTestcases}>Refresh</button>
     </div>)
 }
 

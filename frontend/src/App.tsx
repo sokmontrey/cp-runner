@@ -18,6 +18,7 @@ export default function App() {
         fetchTestcases,
         updateTestcase,
         addTestcase,
+        removeTestcase,
     } = useTestcases(selectedFile);
 
     const {
@@ -29,14 +30,15 @@ export default function App() {
             files={files}
             selectedFile={selectedFile}
             onFileSelected={selectFile}
-            refreshFiles={fetchFiles}
+            onRefreshFiles={fetchFiles}
         />
         <Editor
-            addTestcase={addTestcase}
             selectedFile={selectedFile}
             testcases={testcases}
-            updateTestcase={updateTestcase}
-            fetchTestcases={fetchTestcases}
+            onAddTestcase={addTestcase}
+            onUpdateTestcase={updateTestcase}
+            onRemoveTestcase={removeTestcase}
+            onRefreshTestcases={fetchTestcases}
         />
         <button onClick={runCode}>Run</button>
     </>);
