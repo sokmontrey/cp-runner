@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"cp-runner-go/internal/model"
 	"cp-runner-go/internal/utils"
@@ -79,6 +80,7 @@ func (a *App) OnTestcaseDeleted(file model.File, id string) {
 	_ = os.Remove(filepath.Join(a.path, file.Name, "expected-outputs", id+".out"))
 	_ = os.Remove(filepath.Join(a.path, file.Name, "actual-outputs", id+".txt"))
 	_ = os.Remove(filepath.Join(a.path, file.Name, "diffs", id+".txt"))
+	_ = os.Remove(filepath.Join(a.path, file.Name, "temps", id+".out"))
 }
 
 // Frontend API
@@ -241,7 +243,7 @@ func (a *App) RunCode(
 	replacedCommand := replacer.Replace(language.Command)
 	cmd := exec.Command("sh", "-c", replacedCommand)
 	output, err := cmd.CombinedOutput()
-	if writeErr := os.WriteFile(actualOutputFile, output, 0644); writeErr != nil {
+	if writeErr := os.WriteFile(actualOutputFile, bytes.TrimRight(output, "\n"), 0644); writeErr != nil {
 		return false
 	}
 	if err != nil {
@@ -267,15 +269,12 @@ func (a *App) CompareOutputs(
 	actLines := strings.Split(strings.TrimSpace(string(actual)), "\n")
 
 	var results []string
-	for i := 0; i < len(expLines) && i < len(actLines); i++ {
-		if expLines[i] == actLines[i] {
+	maxLen := max(len(expLines), len(actLines))
+
+	for i := 0; i < maxLen; i++ {
+		if i < len(expLines) && i < len(actLines) && expLines[i] == actLines[i] {
 			results = append(results, "1")
 		} else {
-			results = append(results, "0")
-		}
-	}
-	if len(expLines) != len(actLines) {
-		for i := len(results); i < max(len(expLines), len(actLines)); i++ {
 			results = append(results, "0")
 		}
 	}

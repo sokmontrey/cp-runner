@@ -25,21 +25,30 @@ export default function App() {
         runCode
     } = useRun(selectedFile);
 
-    return (<>
-        <Explorer
-            files={files}
-            selectedFile={selectedFile}
-            onFileSelected={selectFile}
-            onRefreshFiles={fetchFiles}
-        />
-        <Editor
-            selectedFile={selectedFile}
-            testcases={testcases}
-            onAddTestcase={addTestcase}
-            onUpdateTestcase={updateTestcase}
-            onRemoveTestcase={removeTestcase}
-            onRefreshTestcases={fetchTestcases}
-        />
-        <button onClick={runCode}>Run</button>
-    </>);
+    return (<div className={'flex flex-row bg-base-300 h-screen'}>
+        <div className={'w-64'}>
+            <Explorer
+                files={files}
+                selectedFile={selectedFile}
+                onFileSelected={selectFile}
+                onRefreshFiles={fetchFiles}
+            />
+        </div>
+        <div className={'flex-1 bg-base-200 rounded-l-2xl overflow-y-scroll'}>
+            {selectedFile
+                ? <Editor
+                    selectedFile={selectedFile}
+                    testcases={testcases}
+                    onAddTestcase={addTestcase}
+                    onUpdateTestcase={updateTestcase}
+                    onRemoveTestcase={removeTestcase}
+                    onRefreshTestcases={fetchTestcases}
+                    onRunCode={runCode}
+                />
+                : <div className={'w-full h-full flex flex-row justify-center items-center gap-2 text-neutral-content/80'}>
+                    <p>Select a file to get started</p>
+                </div>
+            }
+        </div>
+    </div>);
 }
