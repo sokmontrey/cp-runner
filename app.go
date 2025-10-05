@@ -40,6 +40,11 @@ func (a *App) startup(ctx context.Context) {
 			".cpp",
 			"g++ $codeFile -o $tempFile && $tempFile < $inputFile",
 		},
+		".py": {
+			"Python",
+			".py",
+			"python $codeFile < $inputFile",
+		},
 	}
 }
 
@@ -86,13 +91,13 @@ func (a *App) OnTestcaseDeleted(file model.File, id string) {
 // Frontend API
 
 func (a *App) GetAllFiles() []model.File {
-	filePath := filepath.Join(a.path)
-	//filePath := filepath.Join(a.path, "..") // TODO: replace with this instead
+	//filePath := filepath.Join(a.path)
+	filePath := filepath.Join(a.path, "..")
 	files, err := os.ReadDir(filePath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	allowedExt := map[string]struct{}{".go": {}} // TODO: remove .go
+	allowedExt := map[string]struct{}{}
 	for _, language := range a.languages {
 		allowedExt[language.Extension] = struct{}{}
 	}
@@ -195,7 +200,7 @@ func (a *App) ProcessSolution(file model.File) {
 		go func(id string) {
 			defer wg.Done()
 
-			codeFile := filepath.Join(a.path, file.FullName)
+			codeFile := filepath.Join(a.path, "..", file.FullName)
 			inputFile := filepath.Join(a.path, file.Name, "inputs", id+".in")
 			actualOutputFile := filepath.Join(a.path, file.Name, "actual-outputs", id+".txt")
 			expectedOutputFile := filepath.Join(a.path, file.Name, "expected-outputs", id+".out")

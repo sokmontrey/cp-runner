@@ -39,7 +39,7 @@ function Explorer(
             </button>
         </div>
         <ul className={''}>
-            {files.map(file =>
+            {files && files.length > 0 && files.map(file =>
                 <FileItem
                     key={file.name}
                     file={file}

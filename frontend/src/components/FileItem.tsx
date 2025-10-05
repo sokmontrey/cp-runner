@@ -1,5 +1,5 @@
 import {model} from "../../wailsjs/go/models";
-import {CIcon, CProgrammingIcon, JavaIcon, PythonIcon} from "@hugeicons/core-free-icons";
+import {CIcon, CProgrammingIcon, JavaIcon, PythonIcon} from "@hugeicons/core-free-icons/index";
 import {HugeiconsIcon, IconSvgElement} from "@hugeicons/react";
 
 interface FileItemProps {
