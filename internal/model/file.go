@@ -1,6 +1,7 @@
 package model
 
 type File struct {
-	Name string `json:"name"`
-	Ext  string `json:"ext"`
+	FullName string `json:"fullName"`
+	Name     string `json:"name"`
+	Ext      string `json:"ext"`
 }
